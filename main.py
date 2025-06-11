@@ -125,9 +125,9 @@ def create_pdf():
                 pdf.ln()
                 for exercise in chunk:
                     pdf.set_x(x_start)
-                    yt_video_link = next(
+                    detailed_page_link = next(
                         (
-                            f"https://www.youtube.com/embed/{d['yt_video_id']}"
+                            f"https://vladflore.fit/detail.html?exercise_id={exercise.id}"
                             for d in data
                             if int(d["id"]) == exercise.id
                         ),
@@ -141,7 +141,7 @@ def create_pdf():
                         exercise.name,
                         border=1,
                         align="L",
-                        link=yt_video_link,
+                        link=detailed_page_link,
                     )
                     pdf.set_text_color(0, 0, 0)
                     pdf.set_font(style="")
