@@ -153,3 +153,12 @@ body:not(:has(#workout-sidebar.d-none)) #toggle-workout-sidebar {
 #workout-sidebar.d-none ~ #toggle-workout-sidebar {
   left: 20px !important;
 }
+
+.add-exes-hint {
+  display: block;
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
