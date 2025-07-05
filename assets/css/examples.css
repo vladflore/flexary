@@ -162,3 +162,9 @@ body:not(:has(#workout-sidebar.d-none)) #toggle-workout-sidebar {
   font-style: italic;
   margin-bottom: 0.5rem;
 }
+
+.golden-text {
+  font-size: 1.1rem;
+  color: #ba945e;
+  letter-spacing: 0.5px;
+}

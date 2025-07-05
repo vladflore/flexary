@@ -10,8 +10,7 @@ from pyodide.ffi import create_proxy
 from pyscript import document, window, display
 from pyweb import pydom
 
-from common import copyright, current_version
-from common import csv_to_json
+from common import copyright, current_version, csv_to_json, category_to_badge
 
 
 @dataclass
@@ -564,18 +563,23 @@ def create_card_exercise(template, data):
     (exercise_html.find("#card-title")[0])._js.textContent = data["name"]
     (exercise_html.find("#card-title")[0])._js.onclick = open_exercise
 
-    (exercise_html.find("#badge-primary")[0])._js.textContent = data["category"]
+    category_badge_element = exercise_html.find("#category-badge")[0]
+    category_badge_element._js.textContent = data["category"]
+    category_badge_element._js.classList.add(
+        category_to_badge.get(data["category"].lower())
+    )
 
-    secondary_badges = data["body_parts"].split(",")
-    badges_container = exercise_html.find("#badges")[0]
-    for i, badge in enumerate(secondary_badges):
-        new_badge = (
-            exercise_html.find("#badge-secondary")[0].clone()
+    body_parts_badges = data["body_parts"].split(",")
+    badges_container_element = exercise_html.find("#badges")[0]
+    for i, badge in enumerate(body_parts_badges):
+        new_badge_element = (
+            exercise_html.find("#body-parts-badge")[0].clone()
             if i > 0
-            else exercise_html.find("#badge-secondary")[0]
+            else exercise_html.find("#body-parts-badge")[0]
         )
-        new_badge._js.textContent = badge
-        badges_container._js.append(new_badge._js)
+        new_badge_element._js.textContent = badge
+        new_badge_element._js.classList.add("bg-secondary")
+        badges_container_element._js.append(new_badge_element._js)
 
     yt_video_link = f"https://www.youtube.com/embed/{data['yt_video_id']}"
     (exercise_html.find("#video-link")[0])._js.href = yt_video_link
@@ -591,6 +595,19 @@ def filter_library(event):
     pydom["#search-input"][0]._js.value = "Need more ☕️ to work :)"
 
 
+def build_category_badges(category_count: dict[str, int]) -> str:
+    html = ""
+    for category, count in category_count.items():
+        badge_class = category_to_badge.get(category.lower())
+        html += f"""
+                <div class="d-flex align-items-center">
+                  <span class="badge {badge_class} me-2">{category}</span>
+                  <span class="golden-text">{count}</span>
+                </div>
+        """
+    return html
+
+
 # Identifiers
 exercises_row_id = "#exercises-row"
 exercise_card_template_id = "#exercise-card-template"
@@ -598,9 +615,10 @@ copyright_el_id = "#copyright"
 version_el_id = "#version"
 footer_el_id = "#footer"
 workout_sidebar_el_id = "#workout-sidebar"
+exercise_count_id = "#exercise-count"
+exercises_per_category_badges_row_id = "#exercises-per-category-badges-row"
 
 download_pdf_btn_id = "download-workouts"
-clear_workout_btn_id = "clear-workouts"
 
 # DOM elements
 exercises_row = pydom[exercises_row_id][0]
@@ -610,9 +628,17 @@ exercise_template = pydom.Element(
 
 data = csv_to_json("exercises.csv")
 
+category_count: dict[str, int] = {}
 for exercise_data in data:
+    category = exercise_data["category"]
+    category_count[category] = category_count.get(category, 0) + 1
     exercise_html = create_card_exercise(exercise_template, exercise_data)
     exercises_row.append(exercise_html)
+
+pydom[exercise_count_id][0]._js.innerHTML = f"Total exercises: {len(data)}"
+pydom[exercises_per_category_badges_row_id][0]._js.innerHTML = build_category_badges(
+    category_count
+)
 
 copyright_element = pydom[copyright_el_id][0]
 copyright_element._js.innerHTML = copyright()

@@ -2,6 +2,8 @@ from pyscript import window
 from common import csv_to_json
 from pyweb import pydom
 from common import copyright, current_version
+from common import category_to_badge
+
 
 current_link = window.location.href
 exercise_id = current_link.split("?")[1].split("=")[1]
@@ -9,7 +11,10 @@ exercise_id = current_link.split("?")[1].split("=")[1]
 data = csv_to_json("exercises.csv", exercise_id=exercise_id)
 
 pydom["#exercise-name"][0]._js.textContent = data["name"]
-pydom["#badge-primary"][0]._js.textContent = data["category"]
+pydom["#category-badge"][0]._js.textContent = data["category"]
+pydom["#category-badge"][0]._js.classList.add(
+    category_to_badge.get(data["category"].lower())
+)
 
 
 def open_exercise(event):
@@ -17,12 +22,15 @@ def open_exercise(event):
     window.open(f"detail.html?exercise_id={exercise_id}", "_blank")
 
 
-secondary_badges = data["body_parts"].split(",")
-for i, badge in enumerate(secondary_badges):
+body_parts_badges = data["body_parts"].split(",")
+for i, badge in enumerate(body_parts_badges):
     new_badge = (
-        pydom["#badge-secondary"][0].clone() if i > 0 else pydom["#badge-secondary"][0]
+        pydom["#body-parts-badge"][0].clone()
+        if i > 0
+        else pydom["#body-parts-badge"][0]
     )
     new_badge._js.textContent = badge
+    new_badge._js.classList.add("bg-secondary")
     pydom["#badges-container"][0]._js.append(new_badge._js)
 
 yt_video_link = f"https://www.youtube.com/embed/{data['yt_video_id']}"
