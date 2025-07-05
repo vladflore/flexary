@@ -2,8 +2,12 @@ from pyscript import window
 from common import csv_to_json
 from pyweb import pydom
 from common import copyright, current_version
-from common import category_to_badge
 
+category_to_badge = {
+    "strength": "bg-dark",
+    "conditioning": "bg-danger",
+    "mobility": "bg-info",
+}
 
 current_link = window.location.href
 exercise_id = current_link.split("?")[1].split("=")[1]

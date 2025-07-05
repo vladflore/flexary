@@ -2,12 +2,6 @@ import csv
 import json
 import datetime
 
-category_to_badge = {
-    "strength": "bg-dark",
-    "conditioning": "bg-danger",
-    "mobility": "bg-info",
-}
-
 
 def csv_to_json(csv_file_path, exercise_id=None):
     """

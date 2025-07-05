@@ -7,10 +7,16 @@ from fpdf import FPDF
 from js import Uint8Array, File, URL, document, localStorage
 from pyodide.ffi.wrappers import add_event_listener
 from pyodide.ffi import create_proxy
-from pyscript import document, window, display
+from pyscript import document, window
 from pyweb import pydom
 
-from common import copyright, current_version, csv_to_json, category_to_badge
+from common import copyright, current_version, csv_to_json
+
+category_to_badge = {
+    "strength": "bg-dark",
+    "conditioning": "bg-danger",
+    "mobility": "bg-info",
+}
 
 
 @dataclass
