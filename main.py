@@ -759,6 +759,7 @@ exercise_template = pydom.Element(
 )
 
 data = csv_to_json("exercises.csv")
+data = sorted(data, key=lambda x: x["name"])
 
 category_count: dict[str, int] = {}
 for exercise_data in data:
