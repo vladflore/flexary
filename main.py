@@ -20,6 +20,7 @@ class Exercise:
     name: str
     sets: int
     reps: str
+    time: str = ""
 
 
 @dataclass
@@ -78,6 +79,11 @@ def create_pdf():
     pdf = PDF()
     pdf.set_font("times", style="", size=13)
 
+    exercise_name_column_width = 90
+    sets_column_width = 20
+    reps_time_column_width = 30
+    weight_column_width = 40
+
     workouts = localStorage.getItem(ls_workouts_key)
     if workouts:
         workouts = eval(workouts)
@@ -93,7 +99,12 @@ def create_pdf():
                 pdf.add_page()
                 pdf.add_watermark("logo-for-pdf.png")
 
-                table_width = 90 + 20 + 20 + 40
+                table_width = (
+                    exercise_name_column_width
+                    + sets_column_width
+                    + reps_time_column_width
+                    + weight_column_width
+                )
                 page_width = pdf.w - 2 * pdf.l_margin
                 x_start = (page_width - table_width) / 2 + pdf.l_margin
 
@@ -117,10 +128,38 @@ def create_pdf():
                 row_height = 12
 
                 pdf.set_fill_color(220, 220, 220)
-                pdf.cell(90, row_height, "Exercise", border=1, fill=True, align="C")
-                pdf.cell(20, row_height, "Sets", border=1, fill=True, align="C")
-                pdf.cell(20, row_height, "Reps", border=1, fill=True, align="C")
-                pdf.cell(40, row_height, "Weight", border=1, fill=True, align="C")
+                pdf.cell(
+                    exercise_name_column_width,
+                    row_height,
+                    "Exercise",
+                    border=1,
+                    fill=True,
+                    align="C",
+                )
+                pdf.cell(
+                    sets_column_width,
+                    row_height,
+                    "Sets",
+                    border=1,
+                    fill=True,
+                    align="C",
+                )
+                pdf.cell(
+                    reps_time_column_width,
+                    row_height,
+                    "Reps / Time",
+                    border=1,
+                    fill=True,
+                    align="C",
+                )
+                pdf.cell(
+                    weight_column_width,
+                    row_height,
+                    "Weight",
+                    border=1,
+                    fill=True,
+                    align="C",
+                )
                 pdf.ln()
                 for exercise in chunk:
                     pdf.set_x(x_start)
@@ -135,7 +174,7 @@ def create_pdf():
                     pdf.set_text_color(0, 0, 255)
                     pdf.set_font(style="U")
                     pdf.cell(
-                        90,
+                        exercise_name_column_width,
                         row_height,
                         exercise.name,
                         border=1,
@@ -144,14 +183,42 @@ def create_pdf():
                     )
                     pdf.set_text_color(0, 0, 0)
                     pdf.set_font(style="")
-                    pdf.cell(20, row_height, str(exercise.sets), border=1, align="C")
-                    pdf.cell(20, row_height, exercise.reps, border=1, align="C")
+                    pdf.cell(
+                        sets_column_width,
+                        row_height,
+                        str(exercise.sets),
+                        border=1,
+                        align="C",
+                    )
+
+                    # Reps / Time
+                    reps_time_cell_content = ""
+                    if exercise.reps:
+                        reps_time_cell_content = exercise.reps
+                    if exercise.time:
+                        if reps_time_cell_content:
+                            reps_time_cell_content += " / "
+                        reps_time_cell_content += exercise.time
+                    pdf.cell(
+                        reps_time_column_width,
+                        row_height,
+                        reps_time_cell_content,
+                        border=1,
+                        align="C",
+                    )
+
                     try:
                         sets = int(exercise.sets)
                     except Exception:
                         sets = 1
                     placeholders = "|".join([" ___ "] * sets)
-                    pdf.cell(40, row_height, placeholders, border=1, align="C")
+                    pdf.cell(
+                        weight_column_width,
+                        row_height,
+                        placeholders,
+                        border=1,
+                        align="C",
+                    )
                     pdf.ln(row_height)
             pdf.ln(10)
             pdf.set_font("times", style="I", size=12)
@@ -312,10 +379,20 @@ def render_workouts(workouts: list[Workout]):
         li = w_ul.find("#workout-item")[0]
         for ei, exercise in enumerate(w.exercises):
             w_li = li if ei == 0 else li.clone()
+            details = []
+            if exercise.reps:
+                details.append(f"of {exercise.reps}")
+            if exercise.time:
+                details.append(f"for {exercise.time}")
+            details_str = (
+                f" ({exercise.sets} {' '.join(details)})"
+                if details
+                else f" ({exercise.sets})"
+            )
             w_li.find("#workout-item-name")[0]._js.innerHTML = (
                 f"{exercise.name} "
                 f'<span style="font-size:0.8em; color:#888;">'
-                f"({exercise.sets} of {exercise.reps})"
+                f"{details_str}"
                 f"</span>"
             )
             w_item_remove_icon = w_li.find("#workout-item-remove")[0]
@@ -340,10 +417,10 @@ def add_exercise_to_workout(event):
     exercise_name = event.target.parentElement.parentElement.parentElement.parentElement.getAttribute(
         "data-exercise-name"
     )
-    add_sets_and_reps(exercise_id, exercise_name)
+    configure_exercise(exercise_id, exercise_name)
 
 
-def add_sets_and_reps(exercise_id, exercise_name):
+def configure_exercise(exercise_id, exercise_name):
     ex_card = pydom["#ex-" + exercise_id][0]
 
     overlay = document.createElement("div")
@@ -372,6 +449,7 @@ def add_sets_and_reps(exercise_id, exercise_name):
 
     left_indent = "24px"
 
+    # Sets
     input_sets = document.createElement("input")
     input_sets.type = "number"
     input_sets.min = "1"
@@ -399,33 +477,66 @@ def add_sets_and_reps(exercise_id, exercise_name):
     sets_group.appendChild(label_sets)
     sets_group.appendChild(input_sets)
 
-    label_reps = document.createElement("label")
-    label_reps.textContent = "Reps per set (comma separated):"
-    label_reps.style.marginLeft = left_indent
-    label_reps.style.fontSize = "0.85rem"
-    label_reps.style.fontWeight = "400"
-    label_reps.style.color = "#fff"
-    label_reps.style.letterSpacing = "0.01em"
+    # Reps per set
+    label_reps_per_set = document.createElement("label")
+    label_reps_per_set.textContent = (
+        "Reps per set (comma separated, leave empty if not needed):"
+    )
+    label_reps_per_set.style.marginLeft = left_indent
+    label_reps_per_set.style.fontSize = "0.85rem"
+    label_reps_per_set.style.fontWeight = "400"
+    label_reps_per_set.style.color = "#fff"
+    label_reps_per_set.style.letterSpacing = "0.01em"
 
-    input_reps = document.createElement("input")
-    input_reps.type = "text"
-    input_reps.value = "10,10,10"
-    input_reps.style.marginLeft = left_indent
-    input_reps.style.width = "96px"
-    input_reps.style.marginTop = "2px"
-    input_reps.style.fontSize = "0.85rem"
-    input_reps.style.display = "block"
-    input_reps.style.height = "24px"
-    input_reps.style.padding = "2px 6px"
+    input_reps_per_set = document.createElement("input")
+    input_reps_per_set.type = "text"
+    input_reps_per_set.placeholder = "e.g. 10,12,15"
+    input_reps_per_set.style.marginLeft = left_indent
+    input_reps_per_set.style.width = "96px"
+    input_reps_per_set.style.marginTop = "2px"
+    input_reps_per_set.style.fontSize = "0.85rem"
+    input_reps_per_set.style.display = "block"
+    input_reps_per_set.style.height = "24px"
+    input_reps_per_set.style.padding = "2px 6px"
 
     reps_group = document.createElement("div")
     reps_group.style.display = "flex"
     reps_group.style.flexDirection = "column"
-    reps_group.appendChild(label_reps)
-    reps_group.appendChild(input_reps)
+    reps_group.style.marginBottom = "16px"
+    reps_group.appendChild(label_reps_per_set)
+    reps_group.appendChild(input_reps_per_set)
+
+    # Time per set
+    label_time_per_set = document.createElement("label")
+    label_time_per_set.textContent = (
+        "Time per set (hh:mm:ss, leave empty if not needed):"
+    )
+    label_time_per_set.style.marginLeft = left_indent
+    label_time_per_set.style.fontSize = "0.85rem"
+    label_time_per_set.style.fontWeight = "400"
+    label_time_per_set.style.color = "#fff"
+    label_time_per_set.style.letterSpacing = "0.01em"
+
+    input_time_per_set = document.createElement("input")
+    input_time_per_set.type = "text"
+    input_time_per_set.placeholder = "e.g. 00:01:30"
+    input_time_per_set.style.marginLeft = left_indent
+    input_time_per_set.style.width = "100px"
+    input_time_per_set.style.marginTop = "2px"
+    input_time_per_set.style.fontSize = "0.85rem"
+    input_time_per_set.style.display = "block"
+    input_time_per_set.style.height = "24px"
+    input_time_per_set.style.padding = "2px 6px"
+
+    time_group = document.createElement("div")
+    time_group.style.display = "flex"
+    time_group.style.flexDirection = "column"
+    time_group.appendChild(label_time_per_set)
+    time_group.appendChild(input_time_per_set)
 
     inputs_container.appendChild(sets_group)
     inputs_container.appendChild(reps_group)
+    inputs_container.appendChild(time_group)
 
     buttons_container = document.createElement("div")
     buttons_container.style.display = "flex"
@@ -464,15 +575,30 @@ def add_sets_and_reps(exercise_id, exercise_name):
     def on_confirm_click(evt):
         global active_workout
         sets_val = input_sets.value
-        reps_val = input_reps.value
-        if not sets_val or not reps_val:
-            return
-        sets = int(sets_val)
-        reps = [v for r in reps_val.split(",") if (v := r.strip()) and v.isdigit()]
-        if len(reps) != sets:
+        reps_val = input_reps_per_set.value
+        time_val = input_time_per_set.value
+
+        if not sets_val:
             return
 
-        ex = Exercise(int(exercise_id), str(uuid4()), exercise_name, sets, reps_val)
+        sets = int(sets_val)
+
+        if reps_val:
+            reps = [v for r in reps_val.split(",") if (v := r.strip()) and v.isdigit()]
+            if len(reps) != sets:
+                return
+
+        if time_val:
+            time_parts = time_val.split(":")
+            if len(time_parts) != 3 or not all(part.isdigit() for part in time_parts):
+                return
+            if any(int(part) < 0 for part in time_parts):
+                return
+
+        ex = Exercise(
+            int(exercise_id), str(uuid4()), exercise_name, sets, reps_val, time_val
+        )
+
         if active_workout is None:
             active_workout = uuid4()
             w = Workout(active_workout, datetime.datetime.now().date(), [ex])
