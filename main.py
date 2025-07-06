@@ -404,6 +404,7 @@ def render_workouts(workouts: list[Workout]):
         li = w_ul.find("#workout-item")[0]
         for ei, exercise in enumerate(w.exercises):
             w_li = li if ei == 0 else li.clone()
+            w_li._js.removeAttribute("id")
             details = []
             if exercise.reps:
                 details.append(f"of {exercise.reps}")
@@ -754,8 +755,13 @@ def build_category_badges(category_count: dict[str, int]) -> str:
 
 
 def update(search_str: str) -> None:
+    # >>> empty_string = ""
+    # >>> target_string = "Hello"
+    # >>> empty_string in target_string
+    # True
+    search_str = search_str.strip().lower()
     filtered_data = [
-        exercise for exercise in data if search_str.lower() in exercise["name"].lower()
+        exercise for exercise in data if search_str in exercise["name"].lower()
     ]
     exercises_row._js.innerHTML = ""
     filtered_category_count: dict[str, int] = {}
