@@ -459,7 +459,7 @@ def configure_exercise(exercise_id, exercise_name):
     input_sets = document.createElement("input")
     input_sets.type = "number"
     input_sets.min = "1"
-    input_sets.value = "3"
+    input_sets.value = "1"
     input_sets.style.marginLeft = left_indent
     input_sets.style.width = "48px"
     input_sets.style.marginTop = "2px"
