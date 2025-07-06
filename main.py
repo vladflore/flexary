@@ -7,7 +7,7 @@ from fpdf import FPDF
 from js import Uint8Array, File, URL, document, localStorage
 from pyodide.ffi.wrappers import add_event_listener
 from pyodide.ffi import create_proxy
-from pyscript import document, window
+from pyscript import document, window, when, display
 from pyweb import pydom
 
 from common import copyright, current_version, csv_to_json
@@ -46,6 +46,29 @@ current_workouts = eval(
 workouts: list[Workout] = current_workouts
 
 active_workout: UUID | None = workouts[0].id if workouts else None
+
+
+def q(selector, root=document):
+    return root.querySelector(selector)
+
+
+# Identifiers
+exercises_row_id = "#exercises-row"
+exercise_card_template_id = "#exercise-card-template"
+copyright_el_id = "#copyright"
+version_el_id = "#version"
+footer_el_id = "#footer"
+workout_sidebar_el_id = "#workout-sidebar"
+exercise_count_id = "#exercise-count"
+exercises_per_category_badges_row_id = "#exercises-per-category-badges-row"
+
+download_pdf_btn_id = "download-workouts"
+
+# DOM elements
+exercises_row = pydom[exercises_row_id][0]
+exercise_template = pydom.Element(
+    q(exercise_card_template_id).content.querySelector("#card-exercise")
+)
 
 
 def create_pdf():
@@ -264,10 +287,6 @@ def download_file(*args):
     )
     hidden_link.setAttribute("href", url)
     hidden_link.click()
-
-
-def q(selector, root=document):
-    return root.querySelector(selector)
 
 
 w_template = pydom.Element(
@@ -721,12 +740,6 @@ def create_card_exercise(template, data):
     return exercise_html
 
 
-def filter_library(event):
-    str = event.target.parentElement.children[0].value
-    # TODO implement filtering
-    pydom["#search-input"][0]._js.value = "Need more ☕️ to work :)"
-
-
 def build_category_badges(category_count: dict[str, int]) -> str:
     html = ""
     for category, count in category_count.items():
@@ -740,23 +753,34 @@ def build_category_badges(category_count: dict[str, int]) -> str:
     return html
 
 
-# Identifiers
-exercises_row_id = "#exercises-row"
-exercise_card_template_id = "#exercise-card-template"
-copyright_el_id = "#copyright"
-version_el_id = "#version"
-footer_el_id = "#footer"
-workout_sidebar_el_id = "#workout-sidebar"
-exercise_count_id = "#exercise-count"
-exercises_per_category_badges_row_id = "#exercises-per-category-badges-row"
+def update(search_str: str) -> None:
+    filtered_data = [
+        exercise for exercise in data if search_str.lower() in exercise["name"].lower()
+    ]
+    exercises_row._js.innerHTML = ""
+    filtered_category_count: dict[str, int] = {}
+    for exercise_data in filtered_data:
+        category = exercise_data["category"]
+        filtered_category_count[category] = filtered_category_count.get(category, 0) + 1
+        exercise_html = create_card_exercise(exercise_template, exercise_data)
+        exercises_row.append(exercise_html)
 
-download_pdf_btn_id = "download-workouts"
+    pydom[exercise_count_id][0]._js.innerHTML = f"Total exercises: {len(filtered_data)}"
+    pydom[exercises_per_category_badges_row_id][
+        0
+    ]._js.innerHTML = build_category_badges(filtered_category_count)
 
-# DOM elements
-exercises_row = pydom[exercises_row_id][0]
-exercise_template = pydom.Element(
-    q(exercise_card_template_id).content.querySelector("#card-exercise")
-)
+
+def filter_library(event) -> None:
+    search_str = event.target.parentElement.children[0].value
+    update(search_str)
+
+
+@when("input", "#search-input")
+def handle_search_input(event):
+    search_str = event.target.value
+    update(search_str)
+
 
 data = csv_to_json("exercises.csv")
 data = sorted(data, key=lambda x: x["name"])
